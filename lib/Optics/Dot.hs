@@ -1,37 +1,40 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE RequiredTypeArguments #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Optics.Dot (HasField (..),
-       RecordDotOptics (..),
-       GenericDotOptics (..),
-       the,
- ) where
+module Optics.Dot
+  ( HasField (..),
+    RecordDotOptics (..),
+    GenericDotOptics (..),
+    the,
+  )
+where
 
+import Data.Coerce
 import Data.Kind
 import GHC.Records
+import GHC.TypeLits
 import Optics.Core
-import Data.Coerce
 
 instance
-  ( RecordDotOptics name u v a b u,
+  ( RecordDotOptics name v a b u,
     JoinKinds k A_Lens m,
     AppendIndices is NoIx ks
   ) =>
   HasField name (Optic k is s t u v) (Optic m ks s t a b)
   where
-  getField o = o % dotOptic @name @u @v @a @b @u
+  getField o = o % dotOptic @name @v @a @b @u
 
 -- type role RecordDotOptics nominal nominal nominal nominal nominal nominal
-class RecordDotOptics name s t a b ß | name s -> t a b, name t -> s a b where
--- class RecordDotOptics name s t a b ß | name s -> t a b, name t -> s a b where
-  dotOptic :: Lens ß t a b
+class RecordDotOptics name t a b s | name s -> t a b, name t -> s a b where
+  dotOptic :: Lens s t a b
 
-type GenericDotOptics :: Type -> Type
-newtype GenericDotOptics r = GenericDotOptics r
+type GenericDotOptics :: Symbol -> Type -> Type -> Type -> Type -> Type
+newtype GenericDotOptics name t a b s = GenericDotOptics s
 
-instance  (Coercible s ß, GField name s t a b) => RecordDotOptics name s t a b (GenericDotOptics ß) where
+instance (GField name s t a b) => RecordDotOptics name t a b (GenericDotOptics name t a b s) where
   dotOptic = coerceS (gfield @name)
 
 the :: Iso a b a b

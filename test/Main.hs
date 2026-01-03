@@ -1,8 +1,8 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoFieldSelectors #-}
-{-# LANGUAGE DerivingVia #-}
 
 -- https://stackoverflow.com/questions/53009549/haskell-derivingvia-on-multi-param-type-classes-with-fun-deps
 module Main (main) where
@@ -17,8 +17,9 @@ data Whole z = Whole
     part :: Part z
   }
   deriving stock (Generic, Show)
+  deriving (RecordDotOptics name (Whole t) a b) via (GenericDotOptics name (Whole t) a b (Whole z))
 
-deriving via (GenericDotOptics (Whole z)) instance GField name (Whole z) (Whole p) a b => RecordDotOptics name (Whole z) (Whole p) a b (Whole z)
+-- deriving via (GenericDotOptics (Whole z)) instance RecordDotOptics name (Whole z) (Whole p) a b (Whole z)
 
 -- instance (GField name (Whole p) (Whole q) a b) => RecordDotOptics name (Whole p) (Whole q) a b (Whole p) where
 --   dotOptic = gfield @name
@@ -28,10 +29,7 @@ data Part z = Part
     subpart :: Subpart z
   }
   deriving stock (Generic, Show)
-  deriving (RecordDotOptics name (Part z) (Part p) a b)  via (GenericDotOptics (Part z)) 
-
--- instance (GField name (Part p) (Part q) a b) => RecordDotOptics name (Part p) (Part q) a b (Part p) where
---   dotOptic = gfield @name
+  deriving (RecordDotOptics name (Part t) a b) via (GenericDotOptics name (Part t) a b (Part z))
 
 data Subpart z = Subpart
   { wee :: String,
@@ -39,12 +37,10 @@ data Subpart z = Subpart
     yet :: YetAnotherSubpart
   }
   deriving stock (Generic, Show)
-
-deriving via (GenericDotOptics (Subpart z)) instance GField name (Subpart z) (Subpart p) a b => RecordDotOptics name (Subpart z) (Subpart p) a b (Subpart z)
+  deriving (RecordDotOptics name (Subpart z) a b) via (GenericDotOptics name (Subpart z) a b (Subpart z))
 
 -- instance (GField name (Subpart p) (Subpart q) a b) => RecordDotOptics name (Subpart p) (Subpart q) a b (Subpart p) where
 --   dotOptic = gfield @name
-
 
 data YetAnotherSubpart = YetAnotherSubpart
   { ooo :: String,
@@ -60,7 +56,7 @@ data YetAnotherSubpart = YetAnotherSubpart
 --   RecordDotOptics name x x YetAnotherSubpart YetAnotherSubpart
 --   where
 --   dotOptic = Optics.Core.lens (getField @name) (flip (setField @name))
--- 
+--
 -- instance SetField "ooo" YetAnotherSubpart String where
 --   setField ooo r = r {ooo}
 
@@ -82,5 +78,6 @@ wholex = whole & the.part .~ Part True (Subpart "wee" True (YetAnotherSubpart "o
 main :: IO ()
 main = do
   print whole
-  -- print whole'
-  -- print whole''
+
+-- print whole'
+-- print whole''
