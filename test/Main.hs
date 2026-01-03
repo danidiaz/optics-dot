@@ -17,9 +17,10 @@ data Whole z = Whole
     part :: Part z
   }
   deriving stock (Generic, Show)
-  deriving (RecordDotOptics name a b (Whole p)) via (GenericDotOptics (Whole z))
 
--- instance (GField name (Whole p) (Whole q) a b) => RecordDotOptics name  a b (Whole q) (Whole p) where
+deriving via (GenericDotOptics (Whole z)) instance GField name (Whole z) (Whole p) a b => RecordDotOptics name (Whole z) (Whole p) a b (Whole z)
+
+-- instance (GField name (Whole p) (Whole q) a b) => RecordDotOptics name (Whole p) (Whole q) a b (Whole p) where
 --   dotOptic = gfield @name
 
 data Part z = Part
@@ -27,9 +28,10 @@ data Part z = Part
     subpart :: Subpart z
   }
   deriving stock (Generic, Show)
-  deriving (RecordDotOptics name a b (Part p))  via (GenericDotOptics (Part z))
 
--- instance (GField name (Part p) (Part q) a b) => RecordDotOptics name a b (Part q) (Part p) where
+deriving via (GenericDotOptics (Part z)) instance GField name (Part z) (Part p) a b => RecordDotOptics name (Part z) (Part p) a b (Part z)
+
+-- instance (GField name (Part p) (Part q) a b) => RecordDotOptics name (Part p) (Part q) a b (Part p) where
 --   dotOptic = gfield @name
 
 data Subpart z = Subpart
@@ -38,10 +40,12 @@ data Subpart z = Subpart
     yet :: YetAnotherSubpart
   }
   deriving stock (Generic, Show)
-  deriving (RecordDotOptics name a b (Subpart p))  via (GenericDotOptics (Subpart z))
 
--- instance (GField name (Subpart p) (Subpart q) a b) => RecordDotOptics name a b (Subpart q) (Subpart p)  where
+deriving via (GenericDotOptics (Subpart z)) instance GField name (Subpart z) (Subpart p) a b => RecordDotOptics name (Subpart z) (Subpart p) a b (Subpart z)
+
+-- instance (GField name (Subpart p) (Subpart q) a b) => RecordDotOptics name (Subpart p) (Subpart q) a b (Subpart p) where
 --   dotOptic = gfield @name
+
 
 data YetAnotherSubpart = YetAnotherSubpart
   { ooo :: String,
@@ -65,8 +69,12 @@ whole :: Whole Int
 whole = Whole 0 (Part True (Subpart "wee" 7 (YetAnotherSubpart "oldval" 3)))
 
 -- | Note the the type-changing update
-whole' :: Whole Bool
-whole' = whole & the.part.subpart.foo .~ False
+wholex :: Whole Bool
+wholex = whole & the.part .~ Part True (Subpart "wee" True (YetAnotherSubpart "oldval" 3))
+
+-- -- | Note the the type-changing update
+-- whole' :: Whole Bool
+-- whole' = whole & the.part.subpart.foo .~ False
 
 -- -- | Non-type changed update which includes 'GField' lenses and 'HasField'/'SetField' lenses.
 -- whole'' :: Whole Int
@@ -75,5 +83,5 @@ whole' = whole & the.part.subpart.foo .~ False
 main :: IO ()
 main = do
   print whole
-  print whole'
-  print whole''
+  -- print whole'
+  -- print whole''
