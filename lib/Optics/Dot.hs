@@ -9,6 +9,11 @@
 -- the 'Optics.Core.Optic' datatype, that lets you use dot-access syntax on an
 -- 'Optic', resulting in a new 'Optic' that \"zooms in\" further into some
 -- field.
+--
+-- Here are some example records. Notice how 'DotOptics' is derived with
+-- @DerivingVia@, sometimes using 'GenericDotOptics', sometimes using
+-- 'FieldDotOptics':
+--
 -- >>> :{
 -- data Whole a = Whole
 --   { whole1 :: Int,
@@ -45,6 +50,20 @@
 -- whole :: Whole Int
 -- whole = Whole 0 (Part True (Subpart "wee" 7 (YetAnotherSubpart "oldval" 3)))
 -- --
+-- nonLensyDotAccess :: String
+-- nonLensyDotAccess = whole.part.subpart.yet.ooo
+-- :}
+--
+-- The access chains must start with 'the':
+-- 
+-- >>> :{
+-- nonTypChanging1 :: Whole Int
+-- nonTypChanging1 = whole & the.part.subpart.yet.ooo .~ "newval"
+-- :}
+--
+-- Type-changing updates are supported when 'DotOptics' is derived via 'GenericDotOptics':
+--
+-- >>> :{
 -- typChanging1 :: Whole Bool
 -- typChanging1 = whole & the.part .~ Part True (Subpart "wee" False (YetAnotherSubpart "oldval" 3))
 -- --
@@ -53,12 +72,6 @@
 -- --
 -- typeChanging3 :: Whole String
 -- typeChanging3 = whole & the.part.subpart .~ Subpart "wee" "stuff" (YetAnotherSubpart "oldval" 3)
--- -- 
--- nonTypChanging1 :: Whole Int
--- nonTypChanging1 = whole & the.part.subpart.yet.ooo .~ "newval"
--- --
--- normalDotAccess :: String
--- normalDotAccess = whole.part.subpart.yet.ooo
 -- :}
 -- 
 module Optics.Dot
@@ -108,6 +121,8 @@ class HasDotOptic method name u v a b | name u -> a b where
 data GenericDotOpticsMethod
 
 -- | For deriving 'DotOptics' using DerivingVia. The wrapped type is not used for anything.
+--
+-- Supports type-changing updates.
 newtype GenericDotOptics s = GenericDotOptics s
 
 instance DotOptics (GenericDotOptics s) where
@@ -123,6 +138,8 @@ instance
 data FieldDotOpticsMethod
 
 -- | For deriving 'DotOptics' using DerivingVia. The wrapped type is not used for anything.
+--
+-- Does not support type-changing updates.
 newtype FieldDotOptics s = FieldDotOptics s
 
 instance DotOptics (FieldDotOptics s) where
@@ -140,7 +157,7 @@ instance
   where
   dotOptic = Optics.Core.lens (getField @name) (flip (setField @name))
 
--- | Identity 'Iso'. Used as a starting point for dot access. It's a renamed "Optics.Core.equality".
+-- | Identity 'Iso'. Used as a starting point for dot access. It's a renamed 'Optics.Core.equality'.
 the :: Iso s t s t
 the = Optics.Core.equality
 

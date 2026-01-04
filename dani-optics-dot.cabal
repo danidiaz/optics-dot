@@ -2,11 +2,11 @@ cabal-version:      3.4
 name:               optics-dot
 version:            0.1.0.0
 synopsis:           Use @OverloadedRecordDot@ for nested optics access.
-description:        A set of helper typeclasses for the "optics" package,
+description:        Typeclasses and instances for the "optics" package,
                     that allow syntax like @the.foo.bar@ to express the 
                     composition of record field lenses @foo@ and @bar@.
 
-                    For each record datatype, we can select the method of
+                    For each record datatype, we can select the method for
                     obtaining lenses for its fields, be it through the "optics"
                     library built-in generic deriving, through the
                     @HasField@/@SetField@ typeclasses, or by writing
