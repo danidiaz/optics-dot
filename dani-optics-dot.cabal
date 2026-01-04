@@ -18,11 +18,16 @@ license:            BSD-3-Clause
 license-file:       LICENSE
 author:             Daniel Díaz
 maintainer:         diaz_carrete@yahoo.com
+category:           Data, Optics, Lenses
 build-type:         Simple
 extra-doc-files:    
     CHANGELOG.md
     README.md
 tested-with:  GHC == {9.8.4, 9.10.1, 9.12.2}
+
+source-repository head
+   type:     git
+   location: git@github.com:danidiaz/dani-optics-dot.git
 
 common warnings
     ghc-options: -Wall
@@ -30,7 +35,7 @@ common warnings
 
 common deps
     build-depends:    
-        base >=4.19.0.0, 
+        base >=4.19.0.0 && <5, 
         optics-core >= 0.4.1.1 && < 0.5
 
 library
