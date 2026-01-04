@@ -7,7 +7,6 @@
 module Optics.Dot where
 
 import Data.Kind
-import Data.Proxy
 import GHC.Records
 import GHC.TypeLits
 import Optics.Core
@@ -29,18 +28,28 @@ class HasOpticsMethod s where
 -- The @name v -> u a b w@ fundep could be added but doesn't seem to be necessary.
 -- Could it improve inference?
 type RecordDotOptics :: Type -> Symbol -> Type -> Type -> Type -> Type -> Constraint
-class RecordDotOptics method name u v a b | name u -> a b, name v -> u a b where
+class RecordDotOptics method name u v a b | name u -> a b where
   dotOptic :: Lens u v a b
 
-data GenericsDotOptics
+data GenericsDotOpticsMethod
+
+newtype GenericsDotOptics s = GenericsDotOptics s
+
+instance HasOpticsMethod (GenericsDotOptics s) where
+  type Method (GenericsDotOptics s) = GenericsDotOpticsMethod
 
 instance
   (GField name s t a b) =>
-  RecordDotOptics GenericsDotOptics name s t a b
+  RecordDotOptics GenericsDotOpticsMethod name s t a b
   where
   dotOptic = gfield @name
 
-data FieldDotOptics
+data FieldDotOpticsMethod
+
+newtype FieldDotOptics s = FieldDotOptics s
+
+instance HasOpticsMethod (FieldDotOptics s) where
+  type Method (FieldDotOptics s) = FieldDotOpticsMethod
 
 instance
   ( HasField name s a,
@@ -48,7 +57,7 @@ instance
     s ~ t,
     a ~ b
   ) =>
-  RecordDotOptics FieldDotOptics name s t a b
+  RecordDotOptics FieldDotOpticsMethod name s t a b
   where
   dotOptic = Optics.Core.lens (getField @name) (flip (setField @name))
 
