@@ -16,14 +16,14 @@ data Whole a = Whole
     part :: Part a
   }
   deriving stock (Generic, Show)
-  deriving (HasDotOptics) via GenericsDotOptics (Whole a)
+  deriving (DotOptics) via GenericsDotOptics (Whole a)
 
 data Part a = Part
   { part1 :: Bool,
     subpart :: Subpart a
   }
   deriving stock (Generic, Show)
-  deriving (HasDotOptics) via GenericsDotOptics (Part a)
+  deriving (DotOptics) via GenericsDotOptics (Part a)
 
 data Subpart a = Subpart
   { wee :: String,
@@ -31,14 +31,14 @@ data Subpart a = Subpart
     yet :: YetAnotherSubpart
   }
   deriving stock (Generic, Show)
-  deriving (HasDotOptics) via GenericsDotOptics (Subpart a)
+  deriving (DotOptics) via GenericsDotOptics (Subpart a)
 
 data YetAnotherSubpart = YetAnotherSubpart
   { ooo :: String,
     uuu :: Int
   }
   deriving (Show)
-  deriving (HasDotOptics) via FieldDotOptics YetAnotherSubpart
+  deriving (DotOptics) via FieldDotOptics YetAnotherSubpart
 
 -- | 'YetAnotherSubpart' doesn't use the 'GField' machinery for
 -- 'RecordDotOptics'. Instead, it uses 'HasField'/'SetField'. Field-changing

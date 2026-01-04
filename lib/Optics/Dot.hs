@@ -12,8 +12,8 @@ import GHC.TypeLits
 import Optics.Core
 
 instance
-  ( HasDotOptics u,
-    DotOptic (DotOpticsMethod u) name u v a b,
+  ( DotOptics u,
+    HasDotOptic (DotOpticsMethod u) name u v a b,
     JoinKinds k A_Lens m,
     AppendIndices is NoIx ks
   ) =>
@@ -21,26 +21,26 @@ instance
   where
   getField o = o % (dotOptic @(DotOpticsMethod u) @name @u @v @a @b)
 
-class HasDotOptics s where
+class DotOptics s where
   type DotOpticsMethod s :: Type
 
 -- |
 -- The @name v -> u a b w@ fundep could be added but doesn't seem to be necessary.
 -- Could it improve inference?
-type DotOptic :: Type -> Symbol -> Type -> Type -> Type -> Type -> Constraint
-class DotOptic method name u v a b | name u -> a b where
+type HasDotOptic :: Type -> Symbol -> Type -> Type -> Type -> Type -> Constraint
+class HasDotOptic method name u v a b | name u -> a b where
   dotOptic :: Lens u v a b
 
 data GenericsDotOpticsMethod
 
 newtype GenericsDotOptics s = GenericsDotOptics s
 
-instance HasDotOptics (GenericsDotOptics s) where
+instance DotOptics (GenericsDotOptics s) where
   type DotOpticsMethod (GenericsDotOptics s) = GenericsDotOpticsMethod
 
 instance
   (GField name s t a b) =>
-  DotOptic GenericsDotOpticsMethod name s t a b
+  HasDotOptic GenericsDotOpticsMethod name s t a b
   where
   dotOptic = gfield @name
 
@@ -48,7 +48,7 @@ data FieldDotOpticsMethod
 
 newtype FieldDotOptics s = FieldDotOptics s
 
-instance HasDotOptics (FieldDotOptics s) where
+instance DotOptics (FieldDotOptics s) where
   type DotOpticsMethod (FieldDotOptics s) = FieldDotOpticsMethod
 
 instance
@@ -57,7 +57,8 @@ instance
     s ~ t,
     a ~ b
   ) =>
-  DotOptic FieldDotOpticsMethod name s t a b
+  -- if you change to @name s s a a@, a compilation error happens.
+  HasDotOptic FieldDotOpticsMethod name s t a b
   where
   dotOptic = Optics.Core.lens (getField @name) (flip (setField @name))
 
