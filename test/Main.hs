@@ -70,8 +70,12 @@ whole' = whole & the.part.subpart.foo .~ False
 whole'' :: Whole Int
 whole'' = whole & the.part.subpart.yet.ooo .~ "newval"
 
+normalDotAccess :: String
+normalDotAccess = whole.part.subpart.yet.ooo
+
 main :: IO ()
 main = do
   print whole
   print whole'
   print whole''
+  print normalDotAccess
