@@ -10,8 +10,8 @@
 -- field.
 --
 -- Here are some example records. Notice how 'DotOptics' is derived with
--- @DerivingVia@, sometimes using 'GenericDotOptics', sometimes using
--- 'FieldDotOptics':
+-- @DerivingVia@, sometimes using 'GenericLenses', sometimes using
+-- 'FieldLenses':
 --
 -- >>> :{
 -- data Whole a = Whole
@@ -19,14 +19,14 @@
 --     part :: Part a
 --   }
 --   deriving stock (Generic, Show)
---   deriving (DotOptics) via GenericDotOptics (Whole a)
+--   deriving (DotOptics) via GenericLenses (Whole a)
 -- --
 -- data Part a = Part
 --   { part1 :: Bool,
 --     subpart :: Subpart a
 --   }
 --   deriving stock (Generic, Show)
---   deriving (DotOptics) via GenericDotOptics (Part a)
+--   deriving (DotOptics) via GenericLenses (Part a)
 -- --
 -- data Subpart a = Subpart
 --   { wee :: String,
@@ -34,14 +34,14 @@
 --     yet :: YetAnotherSubpart
 --   }
 --   deriving stock (Generic, Show)
---   deriving (DotOptics) via GenericDotOptics (Subpart a)
+--   deriving (DotOptics) via GenericLenses (Subpart a)
 -- --
 -- data YetAnotherSubpart = YetAnotherSubpart
 --   { ooo :: String,
 --     uuu :: Int
 --   }
 --   deriving (Show)
---   deriving (DotOptics) via FieldDotOptics YetAnotherSubpart
+--   deriving (DotOptics) via FieldLenses YetAnotherSubpart
 -- --
 -- instance SetField "ooo" YetAnotherSubpart String where
 --   setField ooo r = r {ooo}
@@ -60,7 +60,7 @@
 -- nonTypChanging1 = whole & the.part.subpart.yet.ooo .~ "newval"
 -- :}
 --
--- Type-changing updates are supported when 'DotOptics' is derived via 'GenericDotOptics':
+-- Type-changing updates are supported when 'DotOptics' is derived via 'GenericLenses':
 --
 -- >>> :{
 -- typChanging1 :: Whole Bool
@@ -76,10 +76,10 @@ module Optics.Dot
   ( the,
     DotOptics (..),
     HasDotOptic (..),
-    GenericDotOptics (..),
-    GenericDotOpticsMethod,
-    FieldDotOptics (..),
-    FieldDotOpticsMethod,
+    GenericLenses (..),
+    GenericLensesMethod,
+    FieldLenses (..),
+    FieldLensesMethod,
 
     -- * Things that will eventually be in base
     SetField (..),
@@ -104,7 +104,7 @@ instance
 -- | Helper typeclass, used to specify the method for deriving dot optics.
 -- Usually derived with @DerivingVia@.
 --
--- See 'GenericDotOptics' and 'FieldDotOptics'.
+-- See 'GenericLenses' and 'FieldLenses'.
 class DotOptics s where
   type DotOpticsMethod s :: Type
 
@@ -116,32 +116,32 @@ type HasDotOptic :: Type -> Symbol -> Type -> Type -> Type -> Type -> Constraint
 class HasDotOptic method name u v a b | name u -> a b where
   dotOptic :: Lens u v a b
 
-data GenericDotOpticsMethod
+data GenericLensesMethod
 
 -- | For deriving 'DotOptics' using DerivingVia. The wrapped type is not used for anything.
 --
 -- Supports type-changing updates.
-newtype GenericDotOptics s = GenericDotOptics s
+newtype GenericLenses s = GenericLenses s
 
-instance DotOptics (GenericDotOptics s) where
-  type DotOpticsMethod (GenericDotOptics s) = GenericDotOpticsMethod
+instance DotOptics (GenericLenses s) where
+  type DotOpticsMethod (GenericLenses s) = GenericLensesMethod
 
 -- | Produce an optic using the optics' package own generic machinery.
 instance
   (GField name s t a b) =>
-  HasDotOptic GenericDotOpticsMethod name s t a b
+  HasDotOptic GenericLensesMethod name s t a b
   where
   dotOptic = gfield @name
 
-data FieldDotOpticsMethod
+data FieldLensesMethod
 
 -- | For deriving 'DotOptics' using DerivingVia. The wrapped type is not used for anything.
 --
 -- Doesn't support type-changing updates.
-newtype FieldDotOptics s = FieldDotOptics s
+newtype FieldLenses s = FieldLenses s
 
-instance DotOptics (FieldDotOptics s) where
-  type DotOpticsMethod (FieldDotOptics s) = FieldDotOpticsMethod
+instance DotOptics (FieldLenses s) where
+  type DotOpticsMethod (FieldLenses s) = FieldLensesMethod
 
 -- | Produce an optic using the 'HasField'/'SetField' machinery form "GHC.Records".
 instance
@@ -151,7 +151,7 @@ instance
     a ~ b
   ) =>
   -- if you change to @name s s a a@, a compilation error crops up in tests.
-  HasDotOptic FieldDotOpticsMethod name s t a b
+  HasDotOptic FieldLensesMethod name s t a b
   where
   dotOptic = Optics.Core.lens (getField @name) (flip (setField @name))
 
@@ -176,4 +176,3 @@ class SetField x r a | x r -> a where
 -- >>> import GHC.Generics
 -- >>> import Optics.Core
 -- >>> import Optics.Dot
---
