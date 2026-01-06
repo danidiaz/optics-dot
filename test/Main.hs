@@ -5,6 +5,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoFieldSelectors #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Main (main) where
 
@@ -12,6 +14,7 @@ import GHC.Generics
 import GHC.Records
 import Optics.Core
 import Optics.Dot
+import Data.Kind (Type, Constraint)
 
 data Whole a = Whole
   { whole1 :: Int,
@@ -42,6 +45,13 @@ data YetAnotherSubpart = YetAnotherSubpart
   deriving (Show)
   deriving (DotOptics) via Fields YetAnotherSubpart
 
+
+-- | This should be in base in the future.
+type SetField :: forall {k}. k -> Type -> Type -> Constraint
+class SetField x r a | x r -> a where
+  -- | Selector function to extract the field from the record.
+  setField :: a -> r -> r
+
 -- | 'YetAnotherSubpart' doesn't use the 'GField' machinery for
 -- 'RecordDotOptics'. Instead, it uses 'HasField'/'SetField'. Field-changing
 -- updates are not supported here.
@@ -60,6 +70,9 @@ typChanging2 = whole & the.part.subpart .~ Subpart "wee" False (YetAnotherSubpar
 typeChanging3 :: Whole String
 typeChanging3 = whole & the.part.subpart .~ Subpart "wee" "stuff" (YetAnotherSubpart "oldval" 3)
 
+typeChanging4 :: Whole String
+typeChanging4 = whole & the.part.subpart.foo .~ "stuff"
+
 -- | Non-type changed update which includes 'GField' lenses and 'HasField'/'SetField' lenses.
 nonTypChanging1 :: Whole Int
 nonTypChanging1 = whole & the.part.subpart.yet.ooo .~ "newval"
@@ -67,24 +80,44 @@ nonTypChanging1 = whole & the.part.subpart.yet.ooo .~ "newval"
 normalDotAccess :: String
 normalDotAccess = whole.part.subpart.yet.ooo
 
-data Animal
+data Animal a
   = Dog {name :: String, age :: Int}
   | Cat {name :: String, purrs :: Bool}
-  | Octopus {tentacles :: Int}
+  | Squirrel { twees :: Bool}
+  | Octopus {tentacles :: Whole a}
   deriving (Show, Generic)
-  deriving (DotOptics) via GenericConstructors Animal
+  deriving (DotOptics) via GenericConstructors (Animal a)
 
-animal = Dog {name = "Fido", age = 5}
+dog :: Animal Int
+dog = Dog {name = "Fido", age = 5}
 
 matchesDog :: Maybe ([Char], Int)
-matchesDog = animal ^? the._Dog
+matchesDog = dog ^? the._Dog
+
+matchesSquirrel :: Maybe Bool
+matchesSquirrel = dog ^? the._Squirrel
+
+changesOctopus :: Animal Bool
+changesOctopus = dog & the._Octopus.part.subpart.foo .~ False
+
+data Carta a = 
+      Sota | Caballo | Rey {valor :: a}
+  deriving (Show, Generic)
+  deriving (DotOptics) via GenericAffineFields (Carta a)
+
+carta :: Carta Int
+carta = Rey { valor = 3 }
+
+cartaRey :: Carta Bool
+cartaRey = carta & the.valor .~ True
+
 
 data FieldsMethod
 
 -- | For deriving 'DotOptics' using DerivingVia. The wrapped type is not used for anything.
 --
 -- Doesn't support type-changing updates.
-newtype Fields s = Fields s
+newtype Fields s = MakeFields s
 
 instance DotOptics (Fields s) where
   type DotOpticsMethod (Fields s) = FieldsMethod
@@ -109,6 +142,10 @@ main = do
   print typChanging1
   print typChanging2
   print typeChanging3
+  print typeChanging4
   print nonTypChanging1
   print normalDotAccess
   print matchesDog
+  print matchesSquirrel
+  print changesOctopus
+  print cartaRey

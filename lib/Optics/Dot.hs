@@ -9,9 +9,9 @@
 -- 'Optic', resulting in a new 'Optic' that \"zooms in\" further into some
 -- field.
 --
--- Here are some example records. Notice how 'DotOptics' is derived with
--- @DerivingVia@, sometimes using 'GenericFields', sometimes using
--- 'Fields':
+-- Here are some example records. Note how 'DotOptics' is derived via
+-- 'GenericFields'.
+--
 --
 -- >>> :{
 -- data Whole a = Whole
@@ -40,11 +40,8 @@
 --   { ooo :: String,
 --     uuu :: Int
 --   }
---   deriving (Show)
+--   deriving (Generic, Show)
 --   deriving (DotOptics) via GenericFields YetAnotherSubpart
--- --
--- instance SetField "ooo" YetAnotherSubpart String where
---   setField ooo r = r {ooo}
 -- --
 -- whole :: Whole Int
 -- whole = Whole 0 (Part True (Subpart "wee" 7 (YetAnotherSubpart "oldval" 3)))
@@ -60,7 +57,7 @@
 -- nonTypChanging1 = whole & the.part.subpart.yet.ooo .~ "newval"
 -- :}
 --
--- Type-changing updates are supported when 'DotOptics' is derived via 'GenericFields':
+-- Type-changing updates are supported:
 --
 -- >>> :{
 -- typChanging1 :: Whole Bool
@@ -72,6 +69,36 @@
 -- typeChanging3 :: Whole String
 -- typeChanging3 = whole & the.part.subpart .~ Subpart "wee" "stuff" (YetAnotherSubpart "oldval" 3)
 -- :}
+--
+-- We can refer to constructs of sum types. Note how 'DotOptics' is derived via 'GenericConstructors':
+--
+-- >>> :{
+-- data Animal a
+--   = Dog {name :: String, age :: Int}
+--   | Cat {name :: String, purrs :: Bool}
+--   | Squirrel { twees :: Bool}
+--   | Octopus {tentacles :: Whole a}
+--   deriving (Show, Generic)
+--   deriving (DotOptics) via GenericConstructors (Animal a)
+-- -- 
+-- dog :: Animal Int
+-- dog = Dog {name = "Fido", age = 5}
+-- :}
+--
+-- The constructor name must be prefixed with an underscore:
+--
+-- >>> :{
+-- matchesDog :: Maybe ([Char], Int)
+-- matchesDog = dog ^? the._Dog
+-- --
+-- matchesSquirrel :: Maybe Bool
+-- matchesSquirrel = dog ^? the._Squirrel
+-- -- Type-changing update into a branch:
+-- changesOctopus :: Animal Bool
+-- changesOctopus = dog & the._Octopus.part.subpart.foo .~ False
+-- :}
+--
+--
 module Optics.Dot
   ( the,
     DotOptics (..),
@@ -79,9 +106,6 @@ module Optics.Dot
     GenericFields (..),
     GenericAffineFields (..),
     GenericConstructors (..),
-
-    -- * Things that will eventually be in base
-    SetField (..),
   )
 where
 
@@ -94,7 +118,8 @@ instance
   ( DotOptics u,
     method ~ DotOpticsMethod u,
     HasDotOptic method name dotName u v a b,
-    JoinKinds k (DotOpticKind method name u) m,
+    l ~ DotOpticKind method name u,
+    JoinKinds k l m,
     AppendIndices is NoIx ks
   ) =>
   HasField dotName (Optic k is s t u v) (Optic m ks s t a b)
@@ -104,14 +129,12 @@ instance
 -- | Helper typeclass, used to specify the method for deriving dot optics.
 -- Usually derived with @DerivingVia@.
 --
--- See 'GenericFields' and 'Fields'.
+-- See 'GenericFields', 'GenericAffineFields' and 'GenericConstructors'.
 class DotOptics s where
   type DotOpticsMethod s :: Type
 
 -- | Produce an optic according to the given method.
 --
--- __note__: The @name v -> u a b@ fundep seems to be optional here.
--- Do we gain anything by removing it?
 type HasDotOptic :: Type -> Symbol -> Symbol -> Type -> Type -> Type -> Type -> Constraint
 class
   HasDotOptic method name dotName u v a b
@@ -127,10 +150,10 @@ class
 
 data GenericFieldsMethod
 
--- | For deriving 'DotOptics' using DerivingVia. The wrapped type is not used for anything.
+-- | For deriving 'DotOptics' using @DerivingVia@. The wrapped type is not used for anything.
 --
 -- Supports type-changing updates.
-newtype GenericFields s = GenericFields s
+newtype GenericFields s = MakeGenericFields s
 
 instance DotOptics (GenericFields s) where
   type DotOpticsMethod (GenericFields s) = GenericFieldsMethod
@@ -147,10 +170,12 @@ instance
 
 data GenericAffineFieldsMethod
 
--- | For deriving 'DotOptics' using DerivingVia. The wrapped type is not used for anything.
+-- | For deriving 'DotOptics' using @DerivingVia@. The wrapped type is not used for anything.
+--
+-- This is for named fields that may be missing in some branch.
 --
 -- Supports type-changing updates.
-newtype GenericAffineFields s = GenericAffineFields s
+newtype GenericAffineFields s = MakeGenericAffineFields s
 
 instance DotOptics (GenericAffineFields s) where
   type DotOpticsMethod (GenericAffineFields s) = GenericAffineFieldsMethod
@@ -167,10 +192,10 @@ instance
 
 data GenericConstructorsMethod
 
--- | For deriving 'DotOptics' using DerivingVia. The wrapped type is not used for anything.
+-- | For deriving 'DotOptics' using @DerivingVia@. The wrapped type is not used for anything.
 --
 -- Supports type-changing updates.
-newtype GenericConstructors s = GenericConstructors s
+newtype GenericConstructors s = MakeGenericConstructors s
 
 instance DotOptics (GenericConstructors s) where
   type DotOpticsMethod (GenericConstructors s) = GenericConstructorsMethod
@@ -179,7 +204,7 @@ instance DotOptics (GenericConstructors s) where
 instance
   ( GConstructor name s t a b,
     -- Dot notation doesn't allow starting with uppercase like constructors do, so we prepend an underscore.
-    ConsSymbol '_' name ~ dotName
+    dotName ~ ConsSymbol '_' name
   ) =>
   HasDotOptic GenericConstructorsMethod name dotName s t a b
   where
@@ -189,12 +214,6 @@ instance
 -- | Identity 'Iso'. Used as a starting point for dot access. A renamed 'Optics.Core.equality'.
 the :: Iso s t s t
 the = Optics.Core.equality
-
--- | This should be in base in the future.
-type SetField :: forall {k}. k -> Type -> Type -> Constraint
-class SetField x r a | x r -> a where
-  -- | Selector function to extract the field from the record.
-  setField :: a -> r -> r
 
 -- $setup
 -- >>> :set -XDerivingVia
