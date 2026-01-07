@@ -145,7 +145,7 @@ class DotOptics s where
 type HasDotOptic :: Type -> Symbol -> Symbol -> Type -> Type -> Type -> Type -> Constraint
 class
   HasDotOptic method name dotName u v a b
-    | -- Necessary to satisfy the 'HasField' instance.
+    | -- This fundep seems to be optional.
       dotName u -> name,
       dotName u -> v a b,
       dotName v -> u a b
@@ -264,17 +264,15 @@ data GenericConstructorsAndAffineFieldsMethod
 --      SomeBranch { foo :: Int, bar :: Bool }
 --    | OtherBranch { wee :: String }
 --    deriving stock (Generic, Show)
---    deriving (DotOptics) via GenericConstructorsAndAffineFields Branchy 
+--    deriving (DotOptics) via GenericConstructorsAndAffineFields Branchy
 -- branchy :: Branchy
 -- branchy = SomeBranch { foo = 0, bar = False }
 -- --
--- fooVal :: Maybe Int 
--- fooVal = branchy ^? the.foo  
--- branchVal :: Maybe String 
+-- fooVal :: Maybe Int
+-- fooVal = branchy ^? the.foo
+-- branchVal :: Maybe String
 -- branchVal = branchy ^? the._OtherBranch
 -- :}
---
---
 newtype GenericConstructorsAndAffineFields s = MakeGenericConstructorsAndAffineFields s
 
 instance DotOptics (GenericConstructorsAndAffineFields s) where
