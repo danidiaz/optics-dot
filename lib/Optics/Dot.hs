@@ -139,6 +139,7 @@ import Optics.Core
 
 instance
   ( DotOptics u,
+    method ~ DotOpticsMethod u,
     HasDotOptic method dotName l js u v a b,
     JoinKinds k l m,
     AppendIndices is js ks
@@ -160,7 +161,8 @@ class DotOptics s where
 type HasDotOptic :: Type -> Symbol -> OpticKind -> IxList -> Type -> Type -> Type -> Type -> Constraint
 class
   HasDotOptic method dotName k is s t a b
-    | dotName s -> t a b k is,
+    | 
+      dotName s -> t a b k is,
       dotName t -> s a b k is
   where
   dotOptic :: Optic k is s t a b
@@ -250,14 +252,20 @@ class
   dotOpticHelper :: Optic k is s t a b
 
 instance
-  (GConstructor name s t a b) =>
-  HasConstructorOrAffineFieldOptic '(name, ConstructorDotName) A_Prism NoIx s t a b
+  (GConstructor name s t a b,
+  k ~ A_Prism,
+  is ~ NoIx
+  ) =>
+  HasConstructorOrAffineFieldOptic '(name, ConstructorDotName) k is s t a b
   where
   dotOpticHelper = gconstructor @name
 
 instance
-  (GAffineField name s t a b) =>
-  HasConstructorOrAffineFieldOptic '(name, FieldDotName) An_AffineTraversal NoIx s t a b
+  (GAffineField name s t a b, 
+  k ~ An_AffineTraversal,
+  is ~ NoIx
+  ) =>
+  HasConstructorOrAffineFieldOptic '(name, FieldDotName) k is s t a b
   where
   dotOpticHelper = gafield @name
 
