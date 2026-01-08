@@ -114,8 +114,8 @@
 -- >>> :{
 -- data Wee = Wee { vvv :: Int, bbb :: Int }
 --    deriving stock (Show, Generic)
---    deriving (DotOptics) via CustomDotOptics Wee
--- instance HasDotOptic Wee "vvv" A_Lens NoIx Wee Wee Int Int where
+--    deriving (DotOptics) via CustomOptics Wee
+-- instance HasDotOptic CustomOptics "vvv" A_Lens NoIx Wee Wee Int Int where
 --    dotOptic = lens (.vvv) (\r vvv -> r { vvv })
 -- :}
 module Optics.Dot
@@ -126,7 +126,7 @@ module Optics.Dot
     GenericAffineFields (..),
     GenericConstructors (..),
     GenericConstructorsAndAffineFields (..),
-    CustomDotOptics (..),
+    CustomOptics (..),
   )
 where
 
@@ -137,7 +137,7 @@ import Optics.Core
 
 instance
   ( DotOptics u,
-    method ~ DotOpticsMethod u,
+    method u ~ DotOpticsMethod u,
     HasDotOptic method dotName l js u v a b,
     JoinKinds k l m,
     AppendIndices is js ks
@@ -151,12 +151,12 @@ instance
 -- Usually derived with @DerivingVia@.
 --
 -- See 'GenericFields', 'GenericAffineFields', 'GenericConstructors',
--- 'GenericConstructorsAndAffineFields', 'CustomDotOptics'.
+-- 'GenericConstructorsAndAffineFields', 'CustomOptics'.
 class DotOptics s where
   type DotOpticsMethod s :: Type
 
 -- | Produce an optic according to the given method.
-type HasDotOptic :: Type -> Symbol -> OpticKind -> IxList -> Type -> Type -> Type -> Type -> Constraint
+type HasDotOptic :: (Type -> Type) -> Symbol -> OpticKind -> IxList -> Type -> Type -> Type -> Type -> Constraint
 class
   HasDotOptic method dotName k is s t a b
     | dotName s -> t a b k is,
@@ -183,7 +183,7 @@ instance
     k ~ A_Lens,
     is ~ NoIx
   ) =>
-  HasDotOptic (GenericFieldsMethod s) dotName k is s t a b
+  HasDotOptic GenericFieldsMethod dotName k is s t a b
   where
   dotOptic = gfield @dotName
 
@@ -206,11 +206,9 @@ instance
     k ~ An_AffineTraversal,
     is ~ NoIx
   ) =>
-  HasDotOptic (GenericAffineFieldsMethod s) dotName k is s t a b
+  HasDotOptic GenericAffineFieldsMethod dotName k is s t a b
   where
   dotOptic = gafield @dotName
-
-data GenericConstructorsMethod
 
 -- | For deriving 'DotOptics' using @DerivingVia@. The wrapped type is not used for anything.
 --
@@ -218,7 +216,7 @@ data GenericConstructorsMethod
 newtype GenericConstructors s = MakeGenericConstructors s
 
 instance DotOptics (GenericConstructors s) where
-  type DotOpticsMethod (GenericConstructors s) = GenericConstructorsMethod
+  type DotOpticsMethod (GenericConstructors s) = GenericConstructors s
 
 -- | Produce an optic using the optics' package own generic machinery.
 instance
@@ -228,7 +226,7 @@ instance
     k ~ A_Prism,
     is ~ NoIx
   ) =>
-  HasDotOptic GenericConstructorsMethod dotName k is s t a b
+  HasDotOptic GenericConstructors dotName k is s t a b
   where
   dotOptic = gconstructor @constructorName
 
@@ -270,9 +268,6 @@ instance
   where
   dotOpticHelper = gafield @name
 
-type GenericConstructorsAndAffineFieldsMethod :: Type -> Type
-data GenericConstructorsAndAffineFieldsMethod s
-
 -- | For deriving 'DotOptics' using @DerivingVia@.
 --
 -- This combines constructors (names starting with '_') and affine fields (other names).
@@ -298,7 +293,7 @@ data GenericConstructorsAndAffineFieldsMethod s
 newtype GenericConstructorsAndAffineFields s = MakeGenericConstructorsAndAffineFields s
 
 instance DotOptics (GenericConstructorsAndAffineFields s) where
-  type DotOpticsMethod (GenericConstructorsAndAffineFields s) = GenericConstructorsAndAffineFieldsMethod s
+  type DotOpticsMethod (GenericConstructorsAndAffineFields s) = GenericConstructorsAndAffineFields s
 
 -- | Produce an optic using the optics' package own generic machinery.
 -- Delegates to GConstructor or GAffineField depending on whether dotName starts with '_'.
@@ -307,14 +302,14 @@ instance
     '(name, dotNameForWhat) ~ nameAnalysis,
     HasConstructorOrAffineFieldOptic nameAnalysis k is s t a b
   ) =>
-  HasDotOptic (GenericConstructorsAndAffineFieldsMethod s) dotName k is s t a b
+  HasDotOptic GenericConstructorsAndAffineFields dotName k is s t a b
   where
   dotOptic = dotOpticHelper @(AnalyzeDotName dotName)
 
-newtype CustomDotOptics s = MakeCustomDotOptics s
+newtype CustomOptics s = MakeCustomOptics s
 
-instance DotOptics (CustomDotOptics s) where
-  type DotOpticsMethod (CustomDotOptics s) = s
+instance DotOptics (CustomOptics s) where
+  type DotOpticsMethod (CustomOptics s) = CustomOptics s
 
 -- | Identity 'Iso'. Used as a starting point for dot access. A renamed 'Optics.Core.equality'.
 the :: Iso s t s t

@@ -112,16 +112,13 @@ carta = Rey {valor = 3}
 cartaRey :: Carta Bool
 cartaRey = carta & the.valor .~ True
 
-type FieldsMethod :: Type -> Type
-data FieldsMethod s
-
 -- | For deriving 'DotOptics' using DerivingVia. The wrapped type is not used for anything.
 --
 -- Doesn't support type-changing updates.
 newtype Fields s = MakeFields s
 
 instance DotOptics (Fields s) where
-  type DotOpticsMethod (Fields s) = FieldsMethod s
+  type DotOpticsMethod (Fields s) = Fields s
 
 -- | Produce an optic using the 'HasField'/'SetField' machinery form "GHC.Records".
 instance
@@ -133,7 +130,7 @@ instance
     is ~ NoIx
   ) =>
   -- if you change to @name s s a a@, a compilation error crops up in tests.
-  HasDotOptic (FieldsMethod s) name k is s t a b
+  HasDotOptic Fields name k is s t a b
   where
   dotOptic = Optics.Core.lens (getField @name) (flip (setField @name))
 
