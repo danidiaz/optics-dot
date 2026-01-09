@@ -109,8 +109,9 @@
 -- :}
 --
 --
--- For more advanced cases, we can custom 'HasDotOptic' instances
--- for our datatypes. Note how 'DotOptics' is derived via 'CustomOptics'.
+-- For more advanced cases, we can define custom 'HasDotOptic' instances
+-- for our datatypes. Note how 'DotOptics' is derived via 'CustomOptics',
+-- and then we define a 'HasDotOptic' lens for the field @vvv@:
 --
 -- >>> :{
 -- data Wee = Wee { vvv :: Int, bbb :: Int }
@@ -120,12 +121,13 @@
 --    dotOptic = lens (.vvv) (\r vvv -> r { vvv })
 -- :}
 module Optics.Dot
-  ( 
-    -- * The starting point.
+  ( -- * The starting point.
     the,
+
     -- * Optics for @OverloadedRecordDot@.
     DotOptics (..),
     HasDotOptic (..),
+
     -- * Various methods for obtaining optics.
     GenericFields (..),
     GenericAffineFields (..),
@@ -166,14 +168,14 @@ class DotOptics s where
   -- to derive via the wrong datatype, perhaps because of a copy-paste confusion.
   deriveDeftlyNotDaftly :: s -> s
 
--- | Produce an optic for a type @s@ and an @OverloadedRecordDot@ @dotName@, 
+-- | Produce an optic for a type @s@ and an @OverloadedRecordDot@ @dotName@,
 -- according to the given @method@. The @method@ guides instance resolution.
--- 
+--
 -- The last @k is s t a b@ type parameters correspond to the ones of the 'Optic'
 -- type.
 --
 -- @s@ is the source type, @a@ is the focus, @b@ is is the focus after the
--- type-changing update, @t@ is the source type after the type-changing update. 
+-- type-changing update, @t@ is the source type after the type-changing update.
 type HasDotOptic :: (Type -> Type) -> Symbol -> OpticKind -> IxList -> Type -> Type -> Type -> Type -> Constraint
 class
   HasDotOptic method dotName k is s t a b
@@ -329,7 +331,7 @@ instance
   where
   dotOptic = dotOpticHelper @(AnalyzeDotName dotName)
 
--- | For use with @DerivingVia@. Indicates that 'HasOptic' instances for the type will be manually defined. 
+-- | For use with @DerivingVia@. Indicates that 'HasOptic' instances for the type will be manually defined.
 newtype CustomOptics s = MakeCustomOptics s
 
 instance DotOptics (CustomOptics s) where
