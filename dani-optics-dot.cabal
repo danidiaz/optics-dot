@@ -30,8 +30,9 @@ source-repository head
    location: git@github.com:danidiaz/dani-optics-dot.git
 
 common warnings
-    ghc-options: -Wall
-
+    ghc-options: 
+        -Wall
+        -Werror=missing-deriving-strategies
 
 common deps
     build-depends:    

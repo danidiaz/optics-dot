@@ -41,7 +41,7 @@
 --   { ooo :: String,
 --     uuu :: Int
 --   }
---   deriving (Generic, Show)
+--   deriving stock (Generic, Show)
 --   deriving (DotOptics) via GenericFields YetAnotherSubpart
 -- --
 -- whole :: Whole Int
@@ -88,7 +88,7 @@
 --   | Cat {name :: String, purrs :: Bool}
 --   | Squirrel { twees :: Bool}
 --   | Octopus {tentacles :: Whole a}
---   deriving (Show, Generic)
+--   deriving stock (Show, Generic)
 --   deriving (DotOptics) via GenericConstructors (Animal a)
 -- --
 -- dog :: Animal Int
@@ -350,6 +350,7 @@ the = Optics.Core.equality
 -- >>> :set -XUndecidableInstances
 -- >>> :set -XNoFieldSelectors
 -- >>> :set -XDataKinds
+-- >>> :set -Werror=missing-deriving-strategies
 -- >>> import GHC.Generics
 -- >>> import Optics.Core
 -- >>> import Optics.Dot
